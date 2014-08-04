@@ -53,22 +53,15 @@ function costFunction(input_layer_size, hidden_layer_size, output_layer_size, X,
   # output layer
   z3 = activation2*Theta2';
   activation3 = sigmoid(z3);
-  hessian=activation3;
+  h=activation3;
 
   # ==========
   # find cost
   # ==========
   J=0;
-  eyeY = eye(outputLayerSize);
-  intY = [convert(Int64,i)+1 for i in y];
-  yInter = Array(Int64,length(y),outputLayerSize);
-  for i = 1:m
-    yInter[i,:] = eyeY[intY[i],:];
-  end
-
   JInter = zeros(m,1);
   for i=1:m
-    JInter[i,:] = (-yInter[i,:]*log(hessian[i,:]')) - ((1-yInter[i,:])*log(1-hessian[i,:]'));
+    JInter[i,:] = (-yInter[i,:]*log(h[i,:]')) - ((1-yInter[i,:])*log(1-h[i,:]'));
   end
 
   # regularization term
@@ -112,6 +105,7 @@ function predict(Theta1, Theta2, X)
   h1 = sigmoid([ones(m, 1) X] * Theta1');
   h2 = sigmoid([ones(m, 1) h1] * Theta2');
   for i=1:m
+    # sub 1 from the index since we are using 1 to represent 0, 2 for 3 and so on (while calculating yInter)
     p[i,:] = indmax(h2[i,:])-1;
   end
  return p;
@@ -141,7 +135,6 @@ end
 # ===================
 X,y = traindata();
 X=X';
-
 m = size(X, 1);
 
 # ======================
@@ -150,6 +143,14 @@ m = size(X, 1);
 inputLayerSize = size(X,2);
 hiddenLayerSize = 25;
 outputLayerSize = 10;
+
+# since we are doing multiclass classification
+eyeY = eye(outputLayerSize);
+intY = [convert(Int64,i)+1 for i in y];
+yInter = Array(Int64,length(y),outputLayerSize);
+for i = 1:m
+  yInter[i,:] = eyeY[intY[i],:];
+end
 
 epsilon_init = 0.12;
 # including one bias neuron in input layer
@@ -160,15 +161,15 @@ Theta1 = rand(hiddenLayerSize, inputLayerSize+1)* 2 * epsilon_init - epsilon_ini
 Theta2 = rand(outputLayerSize, hiddenLayerSize+1)* 2 * epsilon_init - epsilon_init;
 
 # Weight regularization parameter
-lambda = 1;
+lambda = 3;
 # learning rate
 alpha = 0.1;
 # number of iterations
-epoch = 500;
+epoch = 1000;
 # cost per epoch
 J = zeros(epoch,1);
 for i = 1:epoch
-  J[i,:], Theta_grad1, Theta_grad2 = costFunction(inputLayerSize, hiddenLayerSize, outputLayerSize, X, y, Theta1, Theta2, lambda);
+  J[i,:], Theta_grad1, Theta_grad2 = costFunction(inputLayerSize, hiddenLayerSize, outputLayerSize, X, yInter, Theta1, Theta2, lambda);
   Theta1 = Theta1 - alpha* Theta_grad1;
   Theta2 = Theta2 - alpha* Theta_grad2;
 end
